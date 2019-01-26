@@ -14,30 +14,26 @@
 //------------------------------------------------------------------------------
 
 #define __CL_ENABLE_EXCEPTIONS
-
 #include <CL/cl.hpp>
 
-#include "util.hpp" // utility library
+#include "util.hpp"
+#include "err_code.h"
 
-#include <vector>
+#include <algorithm>
 #include <cstdio>
 #include <cstdlib>
 #include <string>
-
+#include <random>
 #include <iostream>
 #include <fstream>
+#include <vector>
 
-// pick up device type from compiler command line or from the default type
-#ifndef DEVICE
-#define DEVICE CL_DEVICE_TYPE_DEFAULT
-#endif
+// tolerance used in floating point comparisons
+constexpr float TOL = 0.001f;
+// length of vectors a, b, and c
+constexpr int LENGTH = 1024;
 
-#include "err_code.h"
-
-#define TOL (0.001)   // tolerance used in floating point comparisons
-#define LENGTH (1024) // length of vectors a, b, and c
-
-int main(void)
+int main()
 {
     std::vector<float> h_a(LENGTH);             // a vector
     std::vector<float> h_b(LENGTH);             // b vector
@@ -56,13 +52,15 @@ int main(void)
     cl::Buffer d_g; // device memory used for the input g vector
 
     // Fill vectors a and b with random float values
-    int count = LENGTH;
-    for (int i = 0; i < count; i++)
     {
-        h_a[i] = rand() / (float)RAND_MAX;
-        h_b[i] = rand() / (float)RAND_MAX;
-        h_e[i] = rand() / (float)RAND_MAX;
-        h_g[i] = rand() / (float)RAND_MAX;
+        std::mt19937 mersenne_engine{std::random_device{}()};
+
+        std::uniform_real_distribution<float> distribution(0.0f, 1.0f);
+
+        std::generate(begin(h_a), end(h_a), [&]() { return distribution(mersenne_engine); });
+        std::generate(begin(h_b), end(h_b), [&]() { return distribution(mersenne_engine); });
+        std::generate(begin(h_e), end(h_e), [&]() { return distribution(mersenne_engine); });
+        std::generate(begin(h_g), end(h_g), [&]() { return distribution(mersenne_engine); });
     }
 
     try
@@ -88,22 +86,24 @@ int main(void)
         d_d = cl::Buffer(context, CL_MEM_READ_WRITE, sizeof(float) * LENGTH);
         d_f = cl::Buffer(context, CL_MEM_WRITE_ONLY, sizeof(float) * LENGTH);
 
-        vadd(cl::EnqueueArgs(queue, cl::NDRange(count)), d_a, d_b, d_c, count);
-
-        vadd(cl::EnqueueArgs(queue, cl::NDRange(count)), d_e, d_c, d_d, count);
-
-        vadd(cl::EnqueueArgs(queue, cl::NDRange(count)), d_g, d_d, d_f, count);
+        vadd(cl::EnqueueArgs(queue, cl::NDRange(LENGTH)), d_a, d_b, d_c, LENGTH);
+        vadd(cl::EnqueueArgs(queue, cl::NDRange(LENGTH)), d_e, d_c, d_d, LENGTH);
+        vadd(cl::EnqueueArgs(queue, cl::NDRange(LENGTH)), d_g, d_d, d_f, LENGTH);
 
         cl::copy(queue, d_f, begin(h_f), end(h_f));
 
         // Test the results
         int correct = 0;
-        for (int i = 0; i < count; i++)
+        for (int i = 0; i < LENGTH; i++)
         {
-            float tmp = h_a[i] + h_b[i] + h_e[i] + h_g[i]; // assign element i of a+b+e+g to tmp
-            tmp -= h_f[i];             // compute deviation of expected and output result
-            if (tmp * tmp < TOL * TOL) // correct if square deviation is less than tolerance squared
+            // assign element i of a+b+e+g to tmp
+            float const tmp = h_a[i] + h_b[i] + h_e[i] + h_g[i] - h_f[i];
+
+            if (std::pow(tmp, 2) < std::pow(TOL, 2))
+            {
+                // correct if square deviation is less than tolerance squared
                 correct++;
+            }
             else
             {
                 printf(" tmp %f h_a %f h_b %f h_e %f h_g %f h_f %f\n",
@@ -116,7 +116,7 @@ int main(void)
             }
         }
         // summarize results
-        printf("C = A+B+E+G:  %d out of %d results were correct.\n", correct, count);
+        printf("C = A + B + E + G:  %d out of %d results were correct.\n", correct, LENGTH);
     }
     catch (cl::Error const& err)
     {

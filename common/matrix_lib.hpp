@@ -15,19 +15,19 @@
 #include <vector>
 
 /// compute the matrix product (sequential algorithm, dot producdt)
-void seq_mat_mul_sdot(int N, std::vector<float>& A, std::vector<float>& B, std::vector<float>& C);
+void seq_mat_mul_sdot(int const N,
+                      std::vector<float> const& A,
+                      std::vector<float> const& B,
+                      std::vector<float>& C);
 
 /// initialize the input matrices A and B
 void initmat(int N, std::vector<float>& A, std::vector<float>& B, std::vector<float>& C);
 
-/// set a matrix to zero
-void zero_mat(int N, std::vector<float>& C);
-
 /// fill Btrans(Mdim,Pdim)  with transpose of B(Pdim,Mdim)
-void trans(int N, std::vector<float>& B, std::vector<float>& Btrans);
+void trans(int N, std::vector<float> const& B, std::vector<float>& Btrans);
 
 /// compute errors of the product matrix
-float error(int N, std::vector<float>& C);
+float error(int N, std::vector<float> const& C);
 
 /// analyze and output results
 void results(int const N, std::vector<float> const& C, double const run_time);

@@ -1,14 +1,10 @@
-//------------------------------------------------------------------------------
-//
+
 // Name:       pi_ocl.cpp
-//
 // Purpose:    Numeric integration to estimate pi
-//
 // HISTORY:    Written by Tim Mattson, May 2010
 //             Ported to the C++ Wrapper API by Benedict R. Gaster, September 2011
 //             Updated by Tom Deakin and Simon McIntosh-Smith, October 2012
 //             Updated to C++ Wrapper v1.2.6 by Tom Deakin, August 2013
-//
 
 #define __CL_ENABLE_EXCEPTIONS
 
@@ -27,14 +23,11 @@
 #include "err_code.h"
 #include "device_picker.hpp"
 
-constexpr int INSTEPS = 512 * 512 * 512;
-constexpr int ITERS = 262144;
-
 int main(int argc, char* argv[])
 {
-    float* h_psum;           // vector to hold partial sum
-    int in_nsteps = INSTEPS; // default number of steps (updated later to device prefereable)
-    int niters = ITERS;      // number of iterations
+    float* h_psum;                   // vector to hold partial sum
+    int in_nsteps = 512 * 512 * 512; // default number of steps (updated later to device prefereable)
+    int niters = 262144;             // number of iterations
     int nsteps;
     float step_size;
     std::size_t nwork_groups;

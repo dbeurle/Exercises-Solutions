@@ -22,6 +22,7 @@
 //------------------------------------------------------------------------------
 
 #define __CL_ENABLE_EXCEPTIONS
+#include <CL/cl.hpp>
 
 #include "matrix_lib.hpp"
 #include "util.hpp"
@@ -35,8 +36,6 @@
 #include <string>
 #include <iostream>
 #include <vector>
-
-#include <CL/cl.hpp>
 
 int main(int argc, char* argv[])
 {
@@ -64,7 +63,7 @@ int main(int argc, char* argv[])
         if (deviceIndex >= numDevices)
         {
             std::cout << "Invalid device index (try '--list')\n";
-            return EXIT_FAILURE;
+            return 1;
         }
 
         cl::Device device = devices[deviceIndex];
@@ -84,7 +83,7 @@ int main(int argc, char* argv[])
         printf("\n===== Sequential, matrix mult (dot prod), order %d on host CPU ======\n", ORDER);
         for (int i = 0; i < COUNT; i++)
         {
-            zero_mat(N, h_C);
+            std::fill(begin(h_C), end(h_C), 0.0f);
 
             auto const start_time = std::chrono::steady_clock::now();
 
@@ -107,7 +106,7 @@ int main(int argc, char* argv[])
         // OpenCL matrix multiplication ... Naive
 
         // Create the compute program from the source buffer
-        cl::Program program(context, util::loadProgram("../C_elem.cl"), true);
+        cl::Program program(context, util::loadProgram("C_elem.cl"), true);
 
         // Create the compute kernel from the program
         cl::make_kernel<int, cl::Buffer, cl::Buffer, cl::Buffer> naive_mmul(program, "mmul");
@@ -117,7 +116,7 @@ int main(int argc, char* argv[])
         // Do the multiplication COUNT times
         for (int i = 0; i < COUNT; i++)
         {
-            zero_mat(N, h_C);
+            std::fill(begin(h_C), end(h_C), 0.0f);
 
             auto const start_time = std::chrono::steady_clock::now();
 
@@ -141,7 +140,7 @@ int main(int argc, char* argv[])
         // OpenCL matrix multiplication ... C row per work item
 
         // Create the compute program from the source buffer
-        program = cl::Program(context, util::loadProgram("../C_row.cl"), true);
+        program = cl::Program(context, util::loadProgram("C_row.cl"), true);
 
         // Create the compute kernel from the program
         cl::make_kernel<int, cl::Buffer, cl::Buffer, cl::Buffer> crow_mmul(program, "mmul");
@@ -151,7 +150,7 @@ int main(int argc, char* argv[])
         // Do the multiplication COUNT times
         for (int i = 0; i < COUNT; i++)
         {
-            zero_mat(N, h_C);
+            std::fill(begin(h_C), end(h_C), 0.0f);
 
             auto const start_time = std::chrono::steady_clock::now();
 
@@ -173,7 +172,7 @@ int main(int argc, char* argv[])
         //--------------------------------------------------------------------------------
 
         // Create the compute program from the source buffer
-        program = cl::Program(context, util::loadProgram("../C_row_priv.cl"), true);
+        program = cl::Program(context, util::loadProgram("C_row_priv.cl"), true);
 
         // Create the compute kernel from the program
         cl::make_kernel<int, cl::Buffer, cl::Buffer, cl::Buffer> arowpriv_mmul(program, "mmul");
@@ -183,7 +182,7 @@ int main(int argc, char* argv[])
         // Do the multiplication COUNT times
         for (int i = 0; i < COUNT; i++)
         {
-            zero_mat(N, h_C);
+            std::fill(begin(h_C), end(h_C), 0.0f);
 
             auto const start_time = std::chrono::steady_clock::now();
 
@@ -204,7 +203,7 @@ int main(int argc, char* argv[])
         // OpenCL matrix multiplication ... C row per work item, A row pivate, B col local
 
         // Create the compute program from the source buffer
-        program = cl::Program(context, util::loadProgram("../C_row_priv_bloc.cl"), true);
+        program = cl::Program(context, util::loadProgram("C_row_priv_bloc.cl"), true);
 
         // Create the compute kernel from the program
         cl::make_kernel<int, cl::Buffer, cl::Buffer, cl::Buffer, cl::LocalSpaceArg>
@@ -215,7 +214,7 @@ int main(int argc, char* argv[])
         // Do the multiplication COUNT times
         for (int i = 0; i < COUNT; i++)
         {
-            zero_mat(N, h_C);
+            std::fill(begin(h_C), end(h_C), 0.0f);
 
             auto const start_time = std::chrono::steady_clock::now();
 
@@ -241,7 +240,7 @@ int main(int argc, char* argv[])
         //--------------------------------------------------------------------------------
 
         // Create the compute program from the source buffer
-        program = cl::Program(context, util::loadProgram("../C_block_form.cl"), true);
+        program = cl::Program(context, util::loadProgram("C_block_form.cl"), true);
 
         // Create the compute kernel from the program
         cl::make_kernel<int, cl::Buffer, cl::Buffer, cl::Buffer, cl::LocalSpaceArg, cl::LocalSpaceArg>
@@ -252,7 +251,7 @@ int main(int argc, char* argv[])
         // Do the multiplication COUNT times
         for (int i = 0; i < COUNT; i++)
         {
-            zero_mat(N, h_C);
+            std::fill(begin(h_C), end(h_C), 0.0f);
 
             auto const start_time = std::chrono::steady_clock::now();
 

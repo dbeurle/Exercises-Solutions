@@ -21,4 +21,3 @@ __kernel void vadd(
        d[i] = a[i] + b[i] + c[i];
    }
 }
-

@@ -24,13 +24,11 @@
 #define __CL_ENABLE_EXCEPTIONS
 #include <CL/cl.hpp>
 
-#include "matmul.hpp"
 #include "matrix_lib.hpp"
 #include "err_code.h"
 #include "device_picker.hpp"
+#include "util.hpp"
 
-#include <cstdio>
-#include <cstdlib>
 #include <chrono>
 #include <cmath>
 #include <iostream>
@@ -38,20 +36,10 @@
 
 int main(int argc, char* argv[])
 {
-    // A[N][N], B[N][N], C[N][N]
-    int N = ORDER;
-    // Number of elements in each matrix
-    int size = N * N;
-
-    // Host memory for Matrix A, B and C
-    std::vector<float> h_A(size), h_B(size), h_C(size);
-    // Matrices in device memory
-    cl::Buffer d_a, d_b, d_c;
-
     // Create a context and queue
     try
     {
-        cl_uint deviceIndex = 0;
+        cl_uint deviceIndex = 1;
         parseArguments(argc, argv, &deviceIndex);
 
         // Get list of devices
@@ -62,7 +50,7 @@ int main(int argc, char* argv[])
         if (deviceIndex >= numDevices)
         {
             std::cout << "Invalid device index (try '--list')\n";
-            return EXIT_FAILURE;
+            return 1;
         }
 
         cl::Device device = devices[deviceIndex];
@@ -77,13 +65,19 @@ int main(int argc, char* argv[])
         cl::Context context(chosen_device);
         cl::CommandQueue queue(context, device);
 
-        // Run sequential matmul
-        initmat(N, h_A, h_B, h_C);
+        // A[N][N], B[N][N], C[N][N]
+        int const N = ORDER;
+        // Number of elements in each matrix
+        int const size = N * N;
 
-        printf("\n===== Sequential, matrix mult (dot prod), order %d on host CPU ======\n", ORDER);
+        // Host memory for Matrix A, B and C
+        std::vector<float> h_A(size, 3.0f), h_B(size, 5.0f), h_C(size, 0.0f);
+
+        std::cout << "\n===== Sequential, matrix mult (dot prod), order " << ORDER
+                  << " on host CPU ======\n";
         for (int i = 0; i < COUNT; i++)
         {
-            zero_mat(N, h_C);
+            std::fill(begin(h_C), end(h_C), 0.0f);
 
             auto const start_time = std::chrono::steady_clock::now();
 
@@ -96,28 +90,24 @@ int main(int argc, char* argv[])
         }
 
         // Setup the buffers, initialize matrices, and write them into global memory
-
-        //  Reset A, B and C matrices (just to play it safe)
-        initmat(N, h_A, h_B, h_C);
-
-        d_a = cl::Buffer(context, h_A.begin(), h_A.end(), true);
-        d_b = cl::Buffer(context, h_B.begin(), h_B.end(), true);
-        d_c = cl::Buffer(context, CL_MEM_WRITE_ONLY, sizeof(float) * size);
+        cl::Buffer d_a(context, begin(h_A), end(h_A), true);
+        cl::Buffer d_b(context, begin(h_B), end(h_B), true);
+        cl::Buffer d_c(context, CL_MEM_WRITE_ONLY, sizeof(float) * size);
 
         // OpenCL matrix multiplication ... Naive
 
         // Create the compute program from the source buffer
-        cl::Program program(context, util::loadProgram("../C_elem.cl"), true);
+        cl::Program program(context, util::loadProgram("C_elem.cl"), true);
 
         // Create the compute kernel from the program
         cl::make_kernel<int, cl::Buffer, cl::Buffer, cl::Buffer> naive_mmul(program, "mmul");
 
-        printf("\n===== OpenCL, matrix mult, C(i,j) per work item, order %d ======\n", N);
+        std::cout << "\n===== OpenCL, matrix mult, C(i,j) per work item, order " << N << " ======\n";
 
         // Do the multiplication COUNT times
         for (int i = 0; i < COUNT; i++)
         {
-            zero_mat(N, h_C);
+            std::fill(begin(h_C), end(h_C), 0.0f);
 
             auto const start_time = std::chrono::steady_clock::now();
 
@@ -141,17 +131,17 @@ int main(int argc, char* argv[])
         // OpenCL matrix multiplication ... C row per work item
 
         // Create the compute program from the source buffer
-        program = cl::Program(context, util::loadProgram("../C_row.cl"), true);
+        program = cl::Program(context, util::loadProgram("C_row.cl"), true);
 
         // Create the compute kernel from the program
         cl::make_kernel<int, cl::Buffer, cl::Buffer, cl::Buffer> crow_mmul(program, "mmul");
 
-        printf("\n===== OpenCL, matrix mult, C row per work item, order %d ======\n", N);
+        std::cout << "\n===== OpenCL, matrix mult, C row per work item, order " << N << " ======\n";
 
         // Do the multiplication COUNT times
         for (int i = 0; i < COUNT; i++)
         {
-            zero_mat(N, h_C);
+            std::fill(begin(h_C), end(h_C), 0.0f);
 
             auto const start_time = std::chrono::steady_clock::now();
 
@@ -171,17 +161,18 @@ int main(int argc, char* argv[])
         // OpenCL matrix multiplication ... C row per work item, A row in pivate memory
 
         // Create the compute program from the source buffer
-        program = cl::Program(context, util::loadProgram("../C_row_priv.cl"), true);
+        program = cl::Program(context, util::loadProgram("C_row_priv.cl"), true);
 
         // Create the compute kernel from the program
         cl::make_kernel<int, cl::Buffer, cl::Buffer, cl::Buffer> arowpriv_mmul(program, "mmul");
 
-        printf("\n===== OpenCL, matrix mult, C row, A row in priv mem, order %d ======\n", N);
+        std::cout << "\n===== OpenCL, matrix mult, C row, A row in priv mem, order " << N
+                  << " ======\n";
 
         // Do the multiplication COUNT times
         for (int i = 0; i < COUNT; i++)
         {
-            zero_mat(N, h_C);
+            std::fill(begin(h_C), end(h_C), 0.0f);
 
             auto const start_time = std::chrono::steady_clock::now();
 
@@ -204,5 +195,5 @@ int main(int argc, char* argv[])
         std::cout << "Exception\n";
         std::cerr << "ERROR: " << err.what() << "(" << err_code(err.err()) << ")" << std::endl;
     }
-    return EXIT_SUCCESS;
+    return 0;
 }

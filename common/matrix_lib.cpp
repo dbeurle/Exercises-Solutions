@@ -19,13 +19,17 @@
 #include "matrix_lib.hpp"
 
 #include <algorithm>
+#include <numeric>
 #include <cmath>
 #include <iostream>
 
 // tolerance used in floating point comparisons
 constexpr float TOL = 0.001f;
 
-void seq_mat_mul_sdot(int N, std::vector<float>& A, std::vector<float>& B, std::vector<float>& C)
+void seq_mat_mul_sdot(int const N,
+                      std::vector<float> const& A,
+                      std::vector<float> const& B,
+                      std::vector<float>& C)
 {
     for (int i = 0; i < N; i++)
     {
@@ -49,9 +53,7 @@ void initmat(int N, std::vector<float>& A, std::vector<float>& B, std::vector<fl
     std::fill(begin(C), end(C), 0.0f);
 }
 
-void zero_mat(int N, std::vector<float>& C) { std::fill(begin(C), end(C), 0.0f); }
-
-void trans(int N, std::vector<float>& B, std::vector<float>& Btrans)
+void trans(int N, std::vector<float> const& B, std::vector<float>& Btrans)
 {
     for (int i = 0; i < N; i++)
     {
@@ -64,18 +66,9 @@ void trans(int N, std::vector<float>& B, std::vector<float>& Btrans)
 
 float error(int N, std::vector<float> const& C)
 {
-    float const cval = N * 15.0f;
-
-    float errsq = 0.0f;
-
-    for (int i = 0; i < N; i++)
-    {
-        for (int j = 0; j < N; j++)
-        {
-            errsq += std::pow(C[i * N + j] - cval, 2);
-        }
-    }
-    return errsq;
+    return std::accumulate(begin(C), end(C), 0.0f, [=](float sum, float value) {
+        return sum + std::pow(value - N * 15.0f, 2);
+    });
 }
 
 void results(int const N, std::vector<float> const& C, double const run_time)
