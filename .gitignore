@@ -5,7 +5,10 @@
 # C
 *.o
 
-# Produced binarys
+# CMake build
+build
+
+# Produced binaries
 Exercises/Exercise01/C/DeviceInfo
 Exercises/Exercise02/C/vadd
 Exercises/Exercise04/C/vadd
