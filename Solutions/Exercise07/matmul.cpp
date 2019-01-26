@@ -21,34 +21,34 @@
 //
 //------------------------------------------------------------------------------
 
+#define __CL_ENABLE_EXCEPTIONS
+#include <CL/cl.hpp>
+
 #include "matmul.hpp"
 #include "matrix_lib.hpp"
 #include "err_code.h"
 #include "device_picker.hpp"
 
+#include <cstdio>
+#include <cstdlib>
+#include <chrono>
+#include <cmath>
+#include <iostream>
+#include <vector>
+
 int main(int argc, char* argv[])
 {
-    int N;    // A[N][N], B[N][N], C[N][N]
-    int size; // Number of elements in each matrix
+    // A[N][N], B[N][N], C[N][N]
+    int N = ORDER;
+    // Number of elements in each matrix
+    int size = N * N;
 
-    double start_time; // Starting time
-    double run_time;   // Timing data
-    util::Timer timer; // Timer
+    // Host memory for Matrix A, B and C
+    std::vector<float> h_A(size), h_B(size), h_C(size);
+    // Matrices in device memory
+    cl::Buffer d_a, d_b, d_c;
 
-    N = ORDER;
-
-    size = N * N;
-
-    std::vector<float> h_A(size); // Host memory for Matrix A
-    std::vector<float> h_B(size); // Host memory for Matrix B
-    std::vector<float> h_C(size); // Host memory for Matrix C
-
-    cl::Buffer d_a, d_b, d_c; // Matrices in device memory
-
-    //--------------------------------------------------------------------------------
     // Create a context and queue
-    //--------------------------------------------------------------------------------
-
     try
     {
         cl_uint deviceIndex = 0;
@@ -73,43 +73,38 @@ int main(int argc, char* argv[])
 
         std::vector<cl::Device> chosen_device;
         chosen_device.push_back(device);
+
         cl::Context context(chosen_device);
         cl::CommandQueue queue(context, device);
 
-        //--------------------------------------------------------------------------------
         // Run sequential matmul
-        //--------------------------------------------------------------------------------
-
         initmat(N, h_A, h_B, h_C);
 
         printf("\n===== Sequential, matrix mult (dot prod), order %d on host CPU ======\n", ORDER);
         for (int i = 0; i < COUNT; i++)
         {
             zero_mat(N, h_C);
-            start_time = static_cast<double>(timer.getTimeMilliseconds()) / 1000.0;
+
+            auto const start_time = std::chrono::steady_clock::now();
 
             seq_mat_mul_sdot(N, h_A, h_B, h_C);
 
-            run_time = static_cast<double>(timer.getTimeMilliseconds()) / 1000.0 - start_time;
-            results(N, h_C, run_time);
+            std::chrono::duration<double> const run_time = std::chrono::steady_clock::now()
+                                                           - start_time;
+
+            results(N, h_C, run_time.count());
         }
 
-        //--------------------------------------------------------------------------------
         // Setup the buffers, initialize matrices, and write them into global memory
-        //--------------------------------------------------------------------------------
 
         //  Reset A, B and C matrices (just to play it safe)
         initmat(N, h_A, h_B, h_C);
 
         d_a = cl::Buffer(context, h_A.begin(), h_A.end(), true);
-
         d_b = cl::Buffer(context, h_B.begin(), h_B.end(), true);
-
         d_c = cl::Buffer(context, CL_MEM_WRITE_ONLY, sizeof(float) * size);
 
-        //--------------------------------------------------------------------------------
         // OpenCL matrix multiplication ... Naive
-        //--------------------------------------------------------------------------------
 
         // Create the compute program from the source buffer
         cl::Program program(context, util::loadProgram("../C_elem.cl"), true);
@@ -124,7 +119,7 @@ int main(int argc, char* argv[])
         {
             zero_mat(N, h_C);
 
-            start_time = static_cast<double>(timer.getTimeMilliseconds()) / 1000.0;
+            auto const start_time = std::chrono::steady_clock::now();
 
             // Execute the kernel over the entire range of C matrix elements ... computing
             // a dot product for each element of the product matrix.  The local work
@@ -135,17 +130,15 @@ int main(int argc, char* argv[])
 
             queue.finish();
 
-            run_time = static_cast<double>(timer.getTimeMilliseconds()) / 1000.0 - start_time;
+            std::chrono::duration<double> const run_time = std::chrono::steady_clock::now()
+                                                           - start_time;
 
-            cl::copy(queue, d_c, h_C.begin(), h_C.end());
+            cl::copy(queue, d_c, begin(h_C), end(h_C));
 
-            results(N, h_C, run_time);
+            results(N, h_C, run_time.count());
+        }
 
-        } // end for loop
-
-        //--------------------------------------------------------------------------------
         // OpenCL matrix multiplication ... C row per work item
-        //--------------------------------------------------------------------------------
 
         // Create the compute program from the source buffer
         program = cl::Program(context, util::loadProgram("../C_row.cl"), true);
@@ -160,24 +153,22 @@ int main(int argc, char* argv[])
         {
             zero_mat(N, h_C);
 
-            start_time = static_cast<double>(timer.getTimeMilliseconds()) / 1000.0;
+            auto const start_time = std::chrono::steady_clock::now();
 
             cl::NDRange global(N);
             crow_mmul(cl::EnqueueArgs(queue, global), N, d_a, d_b, d_c);
 
             queue.finish();
 
-            run_time = static_cast<double>(timer.getTimeMilliseconds()) / 1000.0 - start_time;
+            std::chrono::duration<double> const run_time = std::chrono::steady_clock::now()
+                                                           - start_time;
 
-            cl::copy(queue, d_c, h_C.begin(), h_C.end());
+            cl::copy(queue, d_c, begin(h_C), end(h_C));
 
-            results(N, h_C, run_time);
+            results(N, h_C, run_time.count());
+        }
 
-        } // end for loop
-
-        //--------------------------------------------------------------------------------
         // OpenCL matrix multiplication ... C row per work item, A row in pivate memory
-        //--------------------------------------------------------------------------------
 
         // Create the compute program from the source buffer
         program = cl::Program(context, util::loadProgram("../C_row_priv.cl"), true);
@@ -192,7 +183,7 @@ int main(int argc, char* argv[])
         {
             zero_mat(N, h_C);
 
-            start_time = static_cast<double>(timer.getTimeMilliseconds()) / 1000.0;
+            auto const start_time = std::chrono::steady_clock::now();
 
             cl::NDRange global(N);
             cl::NDRange local(ORDER / 16);
@@ -200,19 +191,18 @@ int main(int argc, char* argv[])
 
             queue.finish();
 
-            run_time = static_cast<double>(timer.getTimeMilliseconds()) / 1000.0 - start_time;
+            std::chrono::duration<double> const run_time = std::chrono::steady_clock::now()
+                                                           - start_time;
 
-            cl::copy(queue, d_c, h_C.begin(), h_C.end());
+            cl::copy(queue, d_c, begin(h_C), end(h_C));
 
-            results(N, h_C, run_time);
-
-        } // end for loop
+            results(N, h_C, run_time.count());
+        }
     }
-    catch (cl::Error err)
+    catch (cl::Error const& err)
     {
         std::cout << "Exception\n";
         std::cerr << "ERROR: " << err.what() << "(" << err_code(err.err()) << ")" << std::endl;
     }
-
     return EXIT_SUCCESS;
 }

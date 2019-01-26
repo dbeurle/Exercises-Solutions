@@ -1,7 +1,7 @@
 //------------------------------------------------------------------------------
 //
 // Name:       gameoflife.cu
-// 
+//
 // Purpose:    CUDA implementation of Conway's game of life
 //
 // HISTORY:    Written by Tom Deakin and Simon McIntosh-Smith, August 2013
@@ -15,17 +15,17 @@
 #define FINALSTATEFILE "final_state.dat"
 
 // Define the state of the cell
-#define DEAD  0
+#define DEAD 0
 #define ALIVE 1
 
 /*************************************************************************************
  * Forward declarations of utility functions
  ************************************************************************************/
-void die(const char* message, const int line, const char *file);
+void die(const char* message, const int line, const char* file);
 void load_board(char* board, const char* file, const unsigned int nx, const unsigned int ny);
 void print_board(const char* board, const unsigned int nx, const unsigned int ny);
 void save_board(const char* board, const unsigned int nx, const unsigned int ny);
-void load_params(const char *file, unsigned int *nx, unsigned int *ny, unsigned int *iterations);
+void load_params(const char* file, unsigned int* nx, unsigned int* ny, unsigned int* iterations);
 void errorCheck(cudaError_t error);
 
 /*************************************************************************************
@@ -51,7 +51,7 @@ __global__ void accelerate_life(const char* tick, char* tock, const int nx, cons
     const unsigned int block_r = (blockIdx.x + 1) % gridDim.x;
     const unsigned int block_l = (blockIdx.x == 0) ? gridDim.x - 1 : blockIdx.x - 1;
     const unsigned int block_u = (blockIdx.y + 1) % gridDim.y;
-    const unsigned int block_d = (blockIdx.y  == 0) ? gridDim.y - 1: blockIdx.y - 1;
+    const unsigned int block_d = (blockIdx.y == 0) ? gridDim.y - 1 : blockIdx.y - 1;
 
     // Select the first row of threads
     if (threadIdx.y == 0)
@@ -80,13 +80,15 @@ __global__ void accelerate_life(const char* tick, char* tock, const int nx, cons
         block[id_b - 1] = tick[nx * idy + (blockDim.x * block_l + blockDim.x - 1)];
     }
 
-
     // Add the 4 corner halo cells
-    block[0] = tick[nx * (blockDim.y * block_d + blockDim.y - 1) + (blockDim.x * block_l) + blockDim.x - 1];
+    block[0] = tick[nx * (blockDim.y * block_d + blockDim.y - 1) + (blockDim.x * block_l)
+                    + blockDim.x - 1];
     block[blockDim.x + 1] = tick[nx * (blockDim.y * block_d + blockDim.y - 1) + (blockDim.x * block_r)];
-    block[(blockDim.x + 2) * (blockDim.y + 1)] = tick[nx * (blockDim.y * block_u) + (blockDim.x * block_l) + blockDim.x - 1];
-    block[(blockDim.x + 2) * (blockDim.y + 2) - 1] = tick[nx * (blockDim.y * block_u) + (blockDim.x * block_r)];
-    
+    block[(blockDim.x + 2) * (blockDim.y + 1)] = tick[nx * (blockDim.y * block_u)
+                                                      + (blockDim.x * block_l) + blockDim.x - 1];
+    block[(blockDim.x + 2) * (blockDim.y + 2) - 1] = tick[nx * (blockDim.y * block_u)
+                                                          + (blockDim.x * block_r)];
+
     __syncthreads();
 
     // Indexes of rows/columns next to id_b
@@ -103,11 +105,11 @@ __global__ void accelerate_life(const char* tick, char* tock, const int nx, cons
     if (block[(threadIdx.y + 1) * (blockDim.x + 2) + x_l] == ALIVE) neighbours++;
     if (block[y_u * (blockDim.x + 2) + x_l] == ALIVE) neighbours++;
     if (block[y_d * (blockDim.x + 2) + x_l] == ALIVE) neighbours++;
-        
+
     if (block[(threadIdx.y + 1) * (blockDim.x + 2) + x_r] == ALIVE) neighbours++;
     if (block[y_u * (blockDim.x + 2) + x_r] == ALIVE) neighbours++;
     if (block[y_d * (blockDim.x + 2) + x_r] == ALIVE) neighbours++;
-         
+
     if (block[y_u * (blockDim.x + 2) + threadIdx.x + 1] == ALIVE) neighbours++;
     if (block[y_d * (blockDim.x + 2) + threadIdx.x + 1] == ALIVE) neighbours++;
 
@@ -130,17 +132,14 @@ __global__ void accelerate_life(const char* tick, char* tock, const int nx, cons
             // Remains dead
             tock[id] = DEAD;
     }
-
 }
-
 
 /*************************************************************************************
  * Main function
  ************************************************************************************/
 
-int main(int argc, char **argv)
+int main(int argc, char** argv)
 {
-
     // Check we have a starting state file
     if (argc != 5)
     {
@@ -150,7 +149,6 @@ int main(int argc, char **argv)
         printf("\tbx by\tsizes of thread blocks - must divide the board size equally\n");
         return EXIT_FAILURE;
     }
-
 
     // Board dimensions and iteration total
     unsigned int nx, ny;
@@ -162,7 +160,7 @@ int main(int argc, char **argv)
 
     // Allocate memory for boards
     size_t size = nx * ny * sizeof(char);
-    char* h_board = (char *)calloc(nx * ny, sizeof(char));
+    char* h_board = (char*)calloc(nx * ny, sizeof(char));
     char* d_board_tick;
     char* d_board_tock;
 
@@ -180,7 +178,7 @@ int main(int argc, char **argv)
     errorCheck(cudaMemcpy(d_board_tick, h_board, size, cudaMemcpyHostToDevice));
 
     // Define our problem size for CUDA
-    dim3 numBlocks(nx/bx, ny/by);
+    dim3 numBlocks(nx / bx, ny / by);
     dim3 numThreads(bx, by);
     size_t sharedMem = sizeof(char) * (bx + 2) * (by + 2);
 
@@ -192,7 +190,7 @@ int main(int argc, char **argv)
         errorCheck(cudaPeekAtLastError());
 
         // Swap the boards over
-        char *tmp = d_board_tick;
+        char* tmp = d_board_tick;
         d_board_tick = d_board_tock;
         d_board_tock = tmp;
     }
@@ -210,28 +208,23 @@ int main(int argc, char **argv)
     return EXIT_SUCCESS;
 }
 
-
 /*************************************************************************************
  * Utility functions
  ************************************************************************************/
 
 // Function to load the params file and set up the X and Y dimensions
-void load_params(const char* file, unsigned int *nx, unsigned int *ny, unsigned int *iterations)
+void load_params(const char* file, unsigned int* nx, unsigned int* ny, unsigned int* iterations)
 {
-    FILE *fp = fopen(file, "r");
-    if (!fp)
-        die("Could not open params file.", __LINE__, __FILE__);
+    FILE* fp = fopen(file, "r");
+    if (!fp) die("Could not open params file.", __LINE__, __FILE__);
 
     int retval;
     retval = fscanf(fp, "%d\n", nx);
-    if (retval != 1)
-        die("Could not read params file: nx.", __LINE__, __FILE__);
+    if (retval != 1) die("Could not read params file: nx.", __LINE__, __FILE__);
     retval = fscanf(fp, "%d\n", ny);
-    if (retval != 1)
-        die("Could not read params file: ny", __LINE__, __FILE__);
+    if (retval != 1) die("Could not read params file: ny", __LINE__, __FILE__);
     retval = fscanf(fp, "%d\n", iterations);
-    if (retval != 1)
-        die("Could not read params file: iterations", __LINE__, __FILE__);
+    if (retval != 1) die("Could not read params file: iterations", __LINE__, __FILE__);
 
     fclose(fp);
 }
@@ -240,22 +233,17 @@ void load_params(const char* file, unsigned int *nx, unsigned int *ny, unsigned 
 // Each line of the file is expected to be: x y 1
 void load_board(char* board, const char* file, const unsigned int nx, const unsigned int ny)
 {
-    FILE *fp = fopen(file, "r");
-    if (!fp)
-        die("Could not open input file.", __LINE__, __FILE__);
+    FILE* fp = fopen(file, "r");
+    if (!fp) die("Could not open input file.", __LINE__, __FILE__);
 
     int retval;
     unsigned int x, y, s;
     while ((retval = fscanf(fp, "%d %d %d\n", &x, &y, &s)) != EOF)
     {
-        if (retval != 3)
-            die("Expected 3 values per line in input file.", __LINE__, __FILE__);
-        if (x > nx - 1)
-            die("Input x-coord out of range.", __LINE__, __FILE__);
-        if (y > ny - 1)
-            die("Input y-coord out of range.", __LINE__, __FILE__);
-        if (s != ALIVE)
-            die("Alive value should be 1.", __LINE__, __FILE__);
+        if (retval != 3) die("Expected 3 values per line in input file.", __LINE__, __FILE__);
+        if (x > nx - 1) die("Input x-coord out of range.", __LINE__, __FILE__);
+        if (y > ny - 1) die("Input y-coord out of range.", __LINE__, __FILE__);
+        if (s != ALIVE) die("Alive value should be 1.", __LINE__, __FILE__);
 
         board[x + y * nx] = ALIVE;
     }
@@ -283,31 +271,28 @@ void print_board(const char* board, const unsigned int nx, const unsigned int ny
 
 void save_board(const char* board, const unsigned int nx, const unsigned int ny)
 {
-    FILE *fp = fopen(FINALSTATEFILE, "w");
-    if (!fp)
-        die("Could not open final state file.", __LINE__, __FILE__);
+    FILE* fp = fopen(FINALSTATEFILE, "w");
+    if (!fp) die("Could not open final state file.", __LINE__, __FILE__);
 
     for (unsigned int i = 0; i < ny; i++)
     {
         for (unsigned int j = 0; j < nx; j++)
         {
-            if (board[i * nx + j] == ALIVE)
-                fprintf(fp, "%d %d %d\n", j, i, ALIVE);
+            if (board[i * nx + j] == ALIVE) fprintf(fp, "%d %d %d\n", j, i, ALIVE);
         }
     }
 }
 
 void errorCheck(cudaError_t error)
 {
-    if (error != cudaSuccess)
-        die(cudaGetErrorString(error), __LINE__, __FILE__);
+    if (error != cudaSuccess) die(cudaGetErrorString(error), __LINE__, __FILE__);
 }
 
 // Function to display error and exit nicely
-void die(const char* message, const int line, const char *file)
+void die(const char* message, const int line, const char* file)
 {
-  fprintf(stderr, "Error at line %d of file %s:\n", line, file);
-  fprintf(stderr, "%s\n",message);
-  fflush(stderr);
-  exit(EXIT_FAILURE);
+    fprintf(stderr, "Error at line %d of file %s:\n", line, file);
+    fprintf(stderr, "%s\n", message);
+    fflush(stderr);
+    exit(EXIT_FAILURE);
 }

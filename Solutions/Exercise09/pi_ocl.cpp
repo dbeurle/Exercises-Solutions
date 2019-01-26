@@ -13,21 +13,22 @@
 #define __CL_ENABLE_EXCEPTIONS
 
 #include <CL/cl.hpp>
-#include "util.hpp"
 
-#include <vector>
+#include <numeric>
+#include <chrono>
 #include <cstdio>
 #include <cstdlib>
 #include <string>
-
+#include <vector>
 #include <iostream>
 #include <fstream>
 
+#include "util.hpp"
 #include "err_code.h"
 #include "device_picker.hpp"
 
-#define INSTEPS (512 * 512 * 512)
-#define ITERS (262144)
+constexpr int INSTEPS = 512 * 512 * 512;
+constexpr int ITERS = 262144;
 
 int main(int argc, char* argv[])
 {
@@ -36,9 +37,8 @@ int main(int argc, char* argv[])
     int niters = ITERS;      // number of iterations
     int nsteps;
     float step_size;
-    ::size_t nwork_groups;
-    ::size_t max_size, work_group_size = 8;
-    float pi_res;
+    std::size_t nwork_groups;
+    std::size_t max_size, work_group_size = 8;
 
     cl::Buffer d_partial_sums;
 
@@ -77,7 +77,6 @@ int main(int argc, char* argv[])
 
         // Get the work group size
         work_group_size = ko_pi.getWorkGroupInfo<CL_KERNEL_WORK_GROUP_SIZE>(device);
-        // printf("wgroup_size = %lu\n", work_group_size);
 
         cl::make_kernel<int, float, cl::LocalSpaceArg, cl::Buffer> pi(program, "pi");
 
@@ -93,7 +92,6 @@ int main(int argc, char* argv[])
 
         nsteps = work_group_size * niters * nwork_groups;
         step_size = 1.0f / static_cast<float>(nsteps);
-        std::vector<float> h_psum(nwork_groups);
 
         printf(" %d work groups of size %d.  %d Integration steps\n",
                (int)nwork_groups,
@@ -102,7 +100,7 @@ int main(int argc, char* argv[])
 
         d_partial_sums = cl::Buffer(context, CL_MEM_WRITE_ONLY, sizeof(float) * nwork_groups);
 
-        util::Timer timer;
+        auto const start = std::chrono::steady_clock::now();
 
         // Execute the kernel over the entire range of our 1d input data set
         // using the maximum number of work group items for this device
@@ -112,22 +110,19 @@ int main(int argc, char* argv[])
            cl::Local(sizeof(float) * work_group_size),
            d_partial_sums);
 
-        cl::copy(queue, d_partial_sums, h_psum.begin(), h_psum.end());
+        std::vector<float> h_psum(nwork_groups);
+        cl::copy(queue, d_partial_sums, begin(h_psum), end(h_psum));
 
         // complete the sum and compute final integral value
-        pi_res = 0.0f;
-        for (unsigned int i = 0; i < nwork_groups; i++)
-        {
-            pi_res += h_psum[i];
-        }
-        pi_res = pi_res * step_size;
+        auto const pi_res = std::accumulate(begin(h_psum), end(h_psum), 0.0f) * step_size;
 
-        // rtime = wtime() - rtime;
-        double rtime = static_cast<double>(timer.getTimeMilliseconds()) / 1000.;
-        printf("\nThe calculation ran in %lf seconds\n", rtime);
+        auto const end = std::chrono::steady_clock::now();
+        std::chrono::duration<double> const elapsed = end - start;
+
+        printf("\nThe calculation ran in %lf seconds\n", elapsed.count());
         printf(" pi = %f for %d steps\n", pi_res, nsteps);
     }
-    catch (cl::Error err)
+    catch (cl::Error const& err)
     {
         std::cout << "Exception\n";
         std::cerr << "ERROR: " << err.what() << "(" << err_code(err.err()) << ")" << std::endl;

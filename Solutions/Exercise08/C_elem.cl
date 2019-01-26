@@ -9,7 +9,7 @@ __kernel void mmul(
     int i = get_global_id(0);
     int j = get_global_id(1);
     float tmp;
-    if ((i < N) && (j < N))
+    if (i < N && j < N)
     {
         tmp = 0.0;
         for (k = 0; k < N; k++)

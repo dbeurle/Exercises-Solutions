@@ -17,37 +17,35 @@
 
 #include <CL/cl.hpp>
 
-#include "util.hpp" // utility library
-
+#include "util.hpp"
 #include "err_code.h"
 
-#include <vector>
+#include <cmath>
+#include <chrono>
 #include <cstdio>
 #include <cstdlib>
 #include <string>
+#include <vector>
 
 #include <iostream>
 #include <fstream>
 
-// pick up device type from compiler command line or from the default type
-#ifndef DEVICE
-#define DEVICE CL_DEVICE_TYPE_DEFAULT
-#endif
-
-//------------------------------------------------------------------------------
-
-#define TOL (0.001)   // tolerance used in floating point comparisons
-#define LENGTH (1024) // length of vectors a, b, and c
+// length of vectors a, b, and c
+constexpr int LENGTH = (1024);
+// tolerance used in floating point comparisons
+constexpr int TOL = (0.001);
 
 int main(void)
 {
-    std::vector<float> h_a(LENGTH);             // a vector
-    std::vector<float> h_b(LENGTH);             // b vector
-    std::vector<float> h_c(LENGTH, 0xdeadbeef); // c = a + b, from compute device
+    // a vector and b vector
+    std::vector<float> h_a(LENGTH), h_b(LENGTH);
+    // c = a + b, from compute device
+    std::vector<float> h_c(LENGTH, 0xdeadbeef);
 
-    cl::Buffer d_a; // device memory used for the input  a vector
-    cl::Buffer d_b; // device memory used for the input  b vector
-    cl::Buffer d_c; // device memory used for the output c vector
+    // device memory used for the input a and b vector
+    cl::Buffer d_a, d_b;
+    // device memory used for the output c vector
+    cl::Buffer d_c;
 
     // Fill vectors a and b with random float values
     int count = LENGTH;
@@ -63,53 +61,49 @@ int main(void)
         cl::Context context(DEVICE);
 
         // Load in kernel source, creating a program object for the context
-
         cl::Program program(context, util::loadProgram("vadd.cl"), true);
 
         // Get the command queue
         cl::CommandQueue queue(context);
 
         // Create the kernel functor
-
         auto vadd = cl::make_kernel<cl::Buffer, cl::Buffer, cl::Buffer, int>(program, "vadd");
 
         d_a = cl::Buffer(context, begin(h_a), end(h_a), true);
         d_b = cl::Buffer(context, begin(h_b), end(h_b), true);
-
         d_c = cl::Buffer(context, CL_MEM_WRITE_ONLY, sizeof(float) * LENGTH);
 
-        util::Timer timer;
+        auto const start_time = std::chrono::steady_clock::now();
 
         vadd(cl::EnqueueArgs(queue, cl::NDRange(count)), d_a, d_b, d_c, count);
 
         queue.finish();
 
-        double rtime = static_cast<double>(timer.getTimeMilliseconds()) / 1000.0;
-        printf("\nThe kernels ran in %lf seconds\n", rtime);
+        std::chrono::duration<double> elapsed_time = std::chrono::steady_clock::now() - start_time;
+        std::cout << "\nThe kernels ran in " << elapsed_time.count() << " seconds\n";
 
         cl::copy(queue, d_c, begin(h_c), end(h_c));
 
         // Test the results
         int correct = 0;
-        float tmp;
         for (int i = 0; i < count; i++)
         {
-            tmp = h_a[i] + h_b[i]; // expected value for d_c[i]
-            tmp -= h_c[i];         // compute errors
-            if (tmp * tmp < TOL * TOL)
-            {              // correct if square deviation is less
-                correct++; //  than tolerance squared
+            float const tmp = h_a[i] + h_b[i] - h_c[i];
+
+            if (std::pow(tmp, 2) < std::pow(TOL, 2))
+            {
+                // correct if square deviation is less than tolerance squared
+                ++correct;
             }
             else
             {
                 printf(" tmp %f h_a %f h_b %f  h_c %f \n", tmp, h_a[i], h_b[i], h_c[i]);
             }
         }
-
         // summarize results
         printf("vector add to find C = A+B:  %d out of %d results were correct.\n", correct, count);
     }
-    catch (cl::Error err)
+    catch (cl::Error const& err)
     {
         std::cout << "Exception\n";
         std::cerr << "ERROR: " << err.what() << "(" << err_code(err.err()) << ")" << std::endl;

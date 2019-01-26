@@ -1,10 +1,10 @@
 
 #ifdef __APPLE__
-    #include <OpenGL/gl.h>
-    #include <GLUT/glut.h>
+#include <OpenGL/gl.h>
+#include <GLUT/glut.h>
 #else
-    #include <GL/gl.h>
-    #include <GL/glut.h>
+#include <GL/gl.h>
+#include <GL/glut.h>
 #endif
 
 #include <stdio.h>
@@ -14,15 +14,9 @@
 
 GLuint texture;
 
-float tex_points[] = {0.0, 1.0,
-                      0.0, 0.0,
-                      1.0, 0.0,
-                      1.0, 1.0};
+float tex_points[] = {0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 1.0, 1.0};
 
-float quad_points[] = {-1.0, -1.0,
-                       -1.0,  1.0,
-                        1.0,  1.0,
-                        1.0, -1.0};
+float quad_points[] = {-1.0, -1.0, -1.0, 1.0, 1.0, 1.0, 1.0, -1.0};
 
 void display(void)
 {
@@ -36,10 +30,14 @@ void display(void)
     glBindTexture(GL_TEXTURE_2D, texture);
     // Draw a rectangle the size of the display
     glBegin(GL_QUADS);
-        glTexCoord2f(tex_points[0],tex_points[1]); glVertex2f(quad_points[0],quad_points[1]);
-        glTexCoord2f(tex_points[2],tex_points[3]); glVertex2f(quad_points[2],quad_points[3]);
-        glTexCoord2f(tex_points[4],tex_points[5]); glVertex2f(quad_points[4],quad_points[5]);
-        glTexCoord2f(tex_points[6],tex_points[7]); glVertex2f(quad_points[6],quad_points[7]);
+    glTexCoord2f(tex_points[0], tex_points[1]);
+    glVertex2f(quad_points[0], quad_points[1]);
+    glTexCoord2f(tex_points[2], tex_points[3]);
+    glVertex2f(quad_points[2], quad_points[3]);
+    glTexCoord2f(tex_points[4], tex_points[5]);
+    glVertex2f(quad_points[4], quad_points[5]);
+    glTexCoord2f(tex_points[6], tex_points[7]);
+    glVertex2f(quad_points[6], quad_points[7]);
     glEnd();
     // Display!
     glFlush();
@@ -118,7 +116,7 @@ void press(unsigned char key, int x, int y)
     glutPostRedisplay();
 }
 
-int main(int argc, char **argv)
+int main(int argc, char** argv)
 {
     // Check for a .dat file to display
     if (argc < 5)
@@ -134,7 +132,7 @@ int main(int argc, char **argv)
     unsigned int nx, ny;
 
     // Load in the params file
-    FILE *fp = fopen(argv[2], "r");
+    FILE* fp = fopen(argv[2], "r");
     if (!fp)
     {
         printf("Unable to open params file!\n");
@@ -145,7 +143,7 @@ int main(int argc, char **argv)
     retval = fscanf(fp, "%d\n", &ny);
 
     // Recreate the Board from the .dat file
-    GLubyte *board = (GLubyte*)calloc(nx * ny, sizeof(GLubyte));
+    GLubyte* board = (GLubyte*)calloc(nx * ny, sizeof(GLubyte));
     unsigned int x, y, s;
     fp = fopen(argv[1], "r");
     while ((retval = fscanf(fp, "%d %d %d\n", &x, &y, &s)) != EOF)
@@ -162,7 +160,7 @@ int main(int argc, char **argv)
     glutInitDisplayMode(GLUT_SINGLE | GLUT_RGB);
     glutInitWindowSize(winX, winY);
     glutCreateWindow("Game of Life Viewer");
-    glClearColor (0.0, 0.0, 0.0, 0.0);
+    glClearColor(0.0, 0.0, 0.0, 0.0);
 
     // Create the texture from the board
     glGenTextures(1, &texture);
@@ -188,4 +186,3 @@ int main(int argc, char **argv)
 
     return EXIT_SUCCESS;
 }
-

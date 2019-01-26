@@ -18,26 +18,24 @@ History: Written by Tim Mattson, 11/99.
 #include "util.hpp"
 
 #include <cstdio>
-static long num_steps = 100000000;
-double step;
-extern double wtime(); // returns time since some fixed past point (wtime.c)
+#include <cmath>
 
 int main()
 {
-    int i;
-    double x, pi, sum = 0.0;
+    constexpr long num_steps = 100'000'000;
 
-    step = 1.0 / (double)num_steps;
+    double step = 1.0 / static_cast<double>(num_steps);
 
     util::Timer timer;
 
-    for (i = 1; i <= num_steps; i++)
+    double sum = 0.0;
+
+    for (int i = 1; i <= num_steps; i++)
     {
-        x = (i - 0.5) * step;
-        sum = sum + 4.0 / (1.0 + x * x);
+        sum += 4.0 / (1.0 + std::pow((i - 0.5) * step, 2));
     }
 
-    pi = step * sum;
-    double run_time = static_cast<double>(timer.getTimeMilliseconds()) / 1000.0;
+    double pi = step * sum;
+    double run_time = timer.getTimeMilliseconds() / 1000.0;
     printf("\n pi with %ld steps is %lf in %lf seconds\n", num_steps, pi, run_time);
 }

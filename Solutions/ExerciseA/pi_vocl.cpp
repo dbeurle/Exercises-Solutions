@@ -14,7 +14,9 @@
 #define __CL_ENABLE_EXCEPTIONS
 
 #include <CL/cl.hpp>
+
 #include "util.hpp"
+#include "err_code.h"
 
 #include <vector>
 #include <iostream>
@@ -25,8 +27,6 @@
 #ifndef DEVICE
 #define DEVICE CL_DEVICE_TYPE_DEFAULT
 #endif
-
-#include "err_code.h"
 
 #define INSTEPS (512 * 512 * 512)
 
@@ -148,13 +148,12 @@ int main(int argc, char** argv)
         pi_res *= step_size;
 
         // Stop the timer
-        double rtime = static_cast<double>(timer.getTimeMilliseconds()) / 1000.;
-        std::cout << "The calculation ran in " << rtime << " seconds\n"
+        std::cout << "The calculation ran in " << timer.getTimeMilliseconds() / 1000.0 << " seconds\n"
                   << " pi = " << pi_res << " for " << nsteps << " steps\n";
 
         return EXIT_SUCCESS;
     }
-    catch (cl::Error err)
+    catch (cl::Error const& err)
     {
         std::cout << "Exception\n";
         std::cerr << "ERROR: " << err.what() << "(" << err_code(err.err()) << ")" << std::endl;
