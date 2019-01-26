@@ -27,11 +27,7 @@ __global__ void vadd(const float* a, const float* b, float* c, const unsigned in
     }
 }
 
-/*************************************************************************************
- * Main function
- ************************************************************************************/
-
-int main(void)
+int main()
 {
     float h_a[LENGTH];      // a vector
     float h_b[LENGTH];      // b vector
