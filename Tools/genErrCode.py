@@ -99,4 +99,3 @@ void check_error(cl_int err, const char *operation, char *filename, int line)
 print('''
 #define checkError(E, S) check_error(E,S,__FILE__,__LINE__)
 ''')
-
