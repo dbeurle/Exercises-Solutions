@@ -11,5 +11,5 @@ __kernel void vadd(__global float* a, __global float* b, __global float* c, size
     {
         return;
     }
-    c[i] = a[i] + b[i];
+    c[index] = a[index] + b[index];
 }

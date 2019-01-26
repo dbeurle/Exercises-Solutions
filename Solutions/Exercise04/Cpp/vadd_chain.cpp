@@ -77,13 +77,12 @@ int main(void)
         cl::CommandQueue queue(context);
 
         // Create the kernel functor
+        cl::make_kernel<cl::Buffer, cl::Buffer, cl::Buffer, size_t> vadd(program, "vadd");
 
-        cl::make_kernel<cl::Buffer, cl::Buffer, cl::Buffer, int> vadd(program, "vadd");
-
-        d_a = cl::Buffer(context, h_a.begin(), h_a.end(), true);
-        d_b = cl::Buffer(context, h_b.begin(), h_b.end(), true);
-        d_e = cl::Buffer(context, h_e.begin(), h_e.end(), true);
-        d_g = cl::Buffer(context, h_g.begin(), h_g.end(), true);
+        d_a = cl::Buffer(context, begin(h_a), end(h_a), true);
+        d_b = cl::Buffer(context, begin(h_b), end(h_b), true);
+        d_e = cl::Buffer(context, begin(h_e), end(h_e), true);
+        d_g = cl::Buffer(context, begin(h_g), end(h_g), true);
 
         d_c = cl::Buffer(context, CL_MEM_READ_WRITE, sizeof(float) * LENGTH);
         d_d = cl::Buffer(context, CL_MEM_READ_WRITE, sizeof(float) * LENGTH);
@@ -95,14 +94,13 @@ int main(void)
 
         vadd(cl::EnqueueArgs(queue, cl::NDRange(count)), d_g, d_d, d_f, count);
 
-        cl::copy(queue, d_f, h_f.begin(), h_f.end());
+        cl::copy(queue, d_f, begin(h_f), end(h_f));
 
         // Test the results
         int correct = 0;
-        float tmp;
         for (int i = 0; i < count; i++)
         {
-            tmp = h_a[i] + h_b[i] + h_e[i] + h_g[i]; // assign element i of a+b+e+g to tmp
+            float tmp = h_a[i] + h_b[i] + h_e[i] + h_g[i]; // assign element i of a+b+e+g to tmp
             tmp -= h_f[i];             // compute deviation of expected and output result
             if (tmp * tmp < TOL * TOL) // correct if square deviation is less than tolerance squared
                 correct++;
@@ -120,7 +118,7 @@ int main(void)
         // summarize results
         printf("C = A+B+E+G:  %d out of %d results were correct.\n", correct, count);
     }
-    catch (cl::Error err)
+    catch (cl::Error const& err)
     {
         std::cout << "Exception\n";
         std::cerr << "ERROR: " << err.what() << "(" << err_code(err.err()) << ")" << std::endl;
