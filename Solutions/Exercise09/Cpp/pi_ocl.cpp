@@ -15,7 +15,6 @@
 #include "cl.hpp"
 #include "util.hpp"
 
-
 #include <vector>
 #include <cstdio>
 #include <cstdlib>
@@ -24,18 +23,17 @@
 #include <iostream>
 #include <fstream>
 
-
 #include "err_code.h"
 #include "device_picker.hpp"
 
-#define INSTEPS (512*512*512)
+#define INSTEPS (512 * 512 * 512)
 #define ITERS (262144)
 
-int main(int argc, char *argv[])
+int main(int argc, char* argv[])
 {
-    float *h_psum;					// vector to hold partial sum
-    int in_nsteps = INSTEPS;		// default number of steps (updated later to device prefereable)
-    int niters = ITERS;				// number of iterations
+    float* h_psum;           // vector to hold partial sum
+    int in_nsteps = INSTEPS; // default number of steps (updated later to device prefereable)
+    int niters = ITERS;      // number of iterations
     int nsteps;
     float step_size;
     ::size_t nwork_groups;
@@ -56,8 +54,8 @@ int main(int argc, char *argv[])
         // Check device index in range
         if (deviceIndex >= numDevices)
         {
-          std::cout << "Invalid device index (try '--list')\n";
-          return EXIT_FAILURE;
+            std::cout << "Invalid device index (try '--list')\n";
+            return EXIT_FAILURE;
         }
 
         cl::Device device = devices[deviceIndex];
@@ -79,28 +77,28 @@ int main(int argc, char *argv[])
 
         // Get the work group size
         work_group_size = ko_pi.getWorkGroupInfo<CL_KERNEL_WORK_GROUP_SIZE>(device);
-        //printf("wgroup_size = %lu\n", work_group_size);
+        // printf("wgroup_size = %lu\n", work_group_size);
 
         cl::make_kernel<int, float, cl::LocalSpaceArg, cl::Buffer> pi(program, "pi");
 
         // Now that we know the size of the work_groups, we can set the number of work
         // groups, the actual number of steps, and the step size
-        nwork_groups = in_nsteps/(work_group_size*niters);
+        nwork_groups = in_nsteps / (work_group_size * niters);
 
-        if ( nwork_groups < 1) {
+        if (nwork_groups < 1)
+        {
             nwork_groups = device.getInfo<CL_DEVICE_MAX_COMPUTE_UNITS>();
-            work_group_size=in_nsteps / (nwork_groups*niters);
+            work_group_size = in_nsteps / (nwork_groups * niters);
         }
 
         nsteps = work_group_size * niters * nwork_groups;
-        step_size = 1.0f/static_cast<float>(nsteps);
+        step_size = 1.0f / static_cast<float>(nsteps);
         std::vector<float> h_psum(nwork_groups);
 
-        printf(
-            " %d work groups of size %d.  %d Integration steps\n",
-            (int)nwork_groups,
-            (int)work_group_size,
-            nsteps);
+        printf(" %d work groups of size %d.  %d Integration steps\n",
+               (int)nwork_groups,
+               (int)work_group_size,
+               nsteps);
 
         d_partial_sums = cl::Buffer(context, CL_MEM_WRITE_ONLY, sizeof(float) * nwork_groups);
 
@@ -108,40 +106,30 @@ int main(int argc, char *argv[])
 
         // Execute the kernel over the entire range of our 1d input data set
         // using the maximum number of work group items for this device
-        pi(
-            cl::EnqueueArgs(
-                    queue,
-                    cl::NDRange(nsteps / niters),
-                    cl::NDRange(work_group_size)),
-                    niters,
-                    step_size,
-                    cl::Local(sizeof(float) * work_group_size),
-                    d_partial_sums);
+        pi(cl::EnqueueArgs(queue, cl::NDRange(nsteps / niters), cl::NDRange(work_group_size)),
+           niters,
+           step_size,
+           cl::Local(sizeof(float) * work_group_size),
+           d_partial_sums);
 
         cl::copy(queue, d_partial_sums, h_psum.begin(), h_psum.end());
 
         // complete the sum and compute final integral value
         pi_res = 0.0f;
-        for (unsigned int i = 0; i< nwork_groups; i++) {
-                pi_res += h_psum[i];
+        for (unsigned int i = 0; i < nwork_groups; i++)
+        {
+            pi_res += h_psum[i];
         }
         pi_res = pi_res * step_size;
 
-        //rtime = wtime() - rtime;
+        // rtime = wtime() - rtime;
         double rtime = static_cast<double>(timer.getTimeMilliseconds()) / 1000.;
         printf("\nThe calculation ran in %lf seconds\n", rtime);
         printf(" pi = %f for %d steps\n", pi_res, nsteps);
-
-        }
-        catch (cl::Error err) {
-            std::cout << "Exception\n";
-            std::cerr
-            << "ERROR: "
-            << err.what()
-            << "("
-            << err_code(err.err())
-            << ")"
-            << std::endl;
-        }
+    }
+    catch (cl::Error err)
+    {
+        std::cout << "Exception\n";
+        std::cerr << "ERROR: " << err.what() << "(" << err_code(err.err()) << ")" << std::endl;
+    }
 }
-
