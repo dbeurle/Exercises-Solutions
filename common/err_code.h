@@ -20,6 +20,7 @@
  *
  *----------------------------------------------------------------------------
  */
+
 #if defined(__APPLE__) || defined(__MACOSX)
 #include <OpenCL/opencl.h>
 #else
@@ -27,12 +28,13 @@
 #endif
 
 #ifdef __cplusplus
- #include <cstdio>
+#include <cstdio>
 #endif
 
-const char *err_code (cl_int err_in)
+const char* err_code(cl_int err_in)
 {
-    switch (err_in) {
+    switch (err_in)
+    {
         case CL_SUCCESS:
             return (char*)"CL_SUCCESS";
         case CL_DEVICE_NOT_FOUND:
@@ -139,8 +141,7 @@ const char *err_code (cl_int err_in)
     }
 }
 
-
-void check_error(cl_int err, const char *operation, char *filename, int line)
+void check_error(cl_int err, const char* operation, char* filename, int line)
 {
     if (err != CL_SUCCESS)
     {
@@ -151,6 +152,4 @@ void check_error(cl_int err, const char *operation, char *filename, int line)
     }
 }
 
-
-#define checkError(E, S) check_error(E,S,__FILE__,__LINE__)
-
+#define checkError(E, S) check_error(E, S, __FILE__, __LINE__)
