@@ -13,7 +13,7 @@
 
 #define __CL_ENABLE_EXCEPTIONS
 
-#include "cl.hpp"
+#include <CL/cl.hpp>
 #include "util.hpp"
 
 #include <vector>
