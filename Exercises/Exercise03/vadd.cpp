@@ -26,14 +26,13 @@
 #include <cstdlib>
 #include <string>
 #include <vector>
-
 #include <iostream>
 #include <fstream>
 
 // length of vectors a, b, and c
-constexpr int LENGTH = (1024);
+constexpr int LENGTH = 1024;
 // tolerance used in floating point comparisons
-constexpr int TOL = (0.001);
+constexpr float TOL = 0.001f;
 
 int main(void)
 {
