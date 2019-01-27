@@ -1,5 +1,8 @@
 
-__kernel void mmul(const int N, __global float* A, __global float* B, __global float* C)
+__kernel void mmul(const int N,
+                   __global float* restrict A,
+                   __global float* restrict B,
+                   __global float* restrict C)
 {
     size_t index = get_global_id(0);
 
@@ -7,7 +10,7 @@ __kernel void mmul(const int N, __global float* A, __global float* B, __global f
     {
         return;
     }
-    
+
     for (size_t j = 0; j < N; j++)
     {
         float tmp = 0.0f;
