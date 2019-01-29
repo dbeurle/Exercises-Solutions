@@ -15,7 +15,7 @@
 
 #include <CL/cl.hpp>
 
-#include "util.hpp"
+#include "load_source.hpp"
 #include "err_code.h"
 
 #include <vector>
@@ -76,7 +76,7 @@ int main(int argc, char** argv)
         // Create context, queue and build program
         cl::Context context(DEVICE);
         cl::CommandQueue queue(context);
-        cl::Program program(context, util::loadProgram("../pi_vocl.cl"), true);
+        cl::Program program(context, load_source("../pi_vocl.cl"), true);
         cl::Kernel kernel;
 
         // Now that we know the size of the work_groups, we can set the number of work

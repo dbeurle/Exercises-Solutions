@@ -1,6 +1,6 @@
 //------------------------------------------------------------------------------
 //
-//  PROGRAM: Matrix Multipliplication driver
+//  PROGRAM: Matrix Multiplication driver
 //
 //  PURPOSE: This is a driver program to test various ways of computing
 //           the product:
@@ -17,7 +17,7 @@
 //           Modified by Simon McIntosh-Smith, September 2011
 //           Modified by Tom Deakin and Simon McIntosh-Smith, October 2012
 //           Updated to C++ Wrapper v1.2.6 by Tom Deakin, August 2013
-//           Modified to assume square matricies by Tom Deakin, October 2014
+//           Modified to assume square matrices by Simon McIntosh-Smith, Sep 2014
 //
 //------------------------------------------------------------------------------
 
@@ -25,9 +25,9 @@
 #include <CL/cl.hpp>
 
 #include "matrix_lib.hpp"
+#include "load_source.hpp"
 #include "err_code.h"
 #include "device_picker.hpp"
-#include "util.hpp"
 
 #include <chrono>
 #include <cmath>
@@ -36,9 +36,9 @@
 
 int main(int argc, char* argv[])
 {
-    // Create a context and queue
     try
     {
+        // Create a context and queue
         cl_uint deviceIndex = 1;
         parseArguments(argc, argv, &deviceIndex);
 
@@ -50,7 +50,7 @@ int main(int argc, char* argv[])
         if (deviceIndex >= numDevices)
         {
             std::cout << "Invalid device index (try '--list')\n";
-            return 1;
+            return EXIT_FAILURE;
         }
 
         cl::Device device = devices[deviceIndex];
@@ -63,18 +63,18 @@ int main(int argc, char* argv[])
         chosen_device.push_back(device);
 
         cl::Context context(chosen_device);
+
         cl::CommandQueue queue(context, device);
 
-        // A[N][N], B[N][N], C[N][N]
-        int const N = ORDER;
-        // Number of elements in each matrix
-        int const size = N * N;
+        std::size_t const N = ORDER;
+        std::size_t const size = N * N;
 
-        // Host memory for Matrix A, B and C
-        std::vector<float> h_A(size, 3.0f), h_B(size, 5.0f), h_C(size, 0.0f);
-
-        std::cout << "\n===== Sequential, matrix mult (dot prod), order " << ORDER
+        std::cout << "\n===== Sequential, matrix mult (dot prod), order " << N
                   << " on host CPU ======\n";
+
+        // Host memory for Matrix A B and C
+        std::vector<float> h_A(size, 3.0f), h_B(size, 5.0f), h_C(size);
+
         for (int i = 0; i < COUNT; i++)
         {
             std::fill(begin(h_C), end(h_C), 0.0f);
@@ -85,23 +85,24 @@ int main(int argc, char* argv[])
 
             std::chrono::duration<double> const run_time = std::chrono::steady_clock::now()
                                                            - start_time;
-
             results(N, h_C, run_time.count());
         }
 
-        // Setup the buffers, initialize matrices, and write them into global memory
+        // Setup the matrices in device buffers, initialize matrices, and write them into global memory
         cl::Buffer d_a(context, begin(h_A), end(h_A), true);
         cl::Buffer d_b(context, begin(h_B), end(h_B), true);
         cl::Buffer d_c(context, CL_MEM_WRITE_ONLY, sizeof(float) * size);
 
-        // OpenCL matrix multiplication ... Naive
+        // OpenCL matrix multiplication ... naive
 
         // Create the compute program from the source buffer
-        cl::Program program(context, util::loadProgram("C_elem.cl"), true);
+        cl::Program program(context, load_source("../Solutions/kernel/matrix_multiply_basic.cl"), true);
 
         // Create the compute kernel from the program
-        cl::make_kernel<int, cl::Buffer, cl::Buffer, cl::Buffer> naive_mmul(program, "mmul");
-
+        // clang-format off
+        cl::make_kernel<std::size_t, cl::Buffer, cl::Buffer, cl::Buffer> naive_mmul(program,
+                                                                                    "matrix_multiply_basic");
+        // clang-format on
         std::cout << "\n===== OpenCL, matrix mult, C(i,j) per work item, order " << N << " ======\n";
 
         // Do the multiplication COUNT times
@@ -127,73 +128,12 @@ int main(int argc, char* argv[])
 
             results(N, h_C, run_time.count());
         }
-
-        // OpenCL matrix multiplication ... C row per work item
-
-        // Create the compute program from the source buffer
-        program = cl::Program(context, util::loadProgram("C_row.cl"), true);
-
-        // Create the compute kernel from the program
-        cl::make_kernel<int, cl::Buffer, cl::Buffer, cl::Buffer> crow_mmul(program, "mmul");
-
-        std::cout << "\n===== OpenCL, matrix mult, C row per work item, order " << N << " ======\n";
-
-        // Do the multiplication COUNT times
-        for (int i = 0; i < COUNT; i++)
-        {
-            std::fill(begin(h_C), end(h_C), 0.0f);
-
-            auto const start_time = std::chrono::steady_clock::now();
-
-            cl::NDRange global(N);
-            crow_mmul(cl::EnqueueArgs(queue, global), N, d_a, d_b, d_c);
-
-            queue.finish();
-
-            std::chrono::duration<double> const run_time = std::chrono::steady_clock::now()
-                                                           - start_time;
-
-            cl::copy(queue, d_c, begin(h_C), end(h_C));
-
-            results(N, h_C, run_time.count());
-        }
-
-        // OpenCL matrix multiplication ... C row per work item, A row in pivate memory
-
-        // Create the compute program from the source buffer
-        program = cl::Program(context, util::loadProgram("C_row_priv.cl"), true);
-
-        // Create the compute kernel from the program
-        cl::make_kernel<int, cl::Buffer, cl::Buffer, cl::Buffer> arowpriv_mmul(program, "mmul");
-
-        std::cout << "\n===== OpenCL, matrix mult, C row, A row in priv mem, order " << N
-                  << " ======\n";
-
-        // Do the multiplication COUNT times
-        for (int i = 0; i < COUNT; i++)
-        {
-            std::fill(begin(h_C), end(h_C), 0.0f);
-
-            auto const start_time = std::chrono::steady_clock::now();
-
-            cl::NDRange global(N);
-            cl::NDRange local(ORDER / 16);
-            arowpriv_mmul(cl::EnqueueArgs(queue, global, local), N, d_a, d_b, d_c);
-
-            queue.finish();
-
-            std::chrono::duration<double> const run_time = std::chrono::steady_clock::now()
-                                                           - start_time;
-
-            cl::copy(queue, d_c, begin(h_C), end(h_C));
-
-            results(N, h_C, run_time.count());
-        }
     }
     catch (cl::Error const& err)
     {
         std::cout << "Exception\n";
         std::cerr << "ERROR: " << err.what() << "(" << err_code(err.err()) << ")" << std::endl;
+        return 1;
     }
     return 0;
 }

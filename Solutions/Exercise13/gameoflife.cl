@@ -1,7 +1,7 @@
 //------------------------------------------------------------------------------
 //
 // Name:       gameoflife.cl
-// 
+//
 // Purpose:    Run a naive Conway's game of life - the kernel itself
 //
 // HISTORY:    Written by Tom Deakin and Simon McIntosh-Smith, August 2013
@@ -9,11 +9,14 @@
 //------------------------------------------------------------------------------
 
 #define ALIVE 1
-#define DEAD  0
+#define DEAD 0
 
-__kernel void accelerate_life(__global const char* tick, __global char* tock, const unsigned int nx, const unsigned int ny, __local char* block)
+__kernel void accelerate_life(__global const char* tick,
+                              __global char* tock,
+                              const unsigned int nx,
+                              const unsigned int ny,
+                              __local char* block)
 {
-
     // The cell we work on in the loop
     const unsigned int idx = get_global_id(0);
     const unsigned int idy = get_global_id(1);
@@ -26,7 +29,6 @@ __kernel void accelerate_life(__global const char* tick, __global char* tock, co
 
     // Copy block to local memory
     block[id_b] = tick[id];
-
 
     // Copy the halo cells (those around the block) to local memory
     const unsigned int block_r = (get_group_id(0) + 1) % get_num_groups(0);
@@ -61,10 +63,15 @@ __kernel void accelerate_life(__global const char* tick, __global char* tock, co
     }
 
     // Copy in the 4 corner halo cells
-    block[0] = tick[nx * (get_local_size(1) * block_d + get_local_size(1) - 1) + (get_local_size(0) * block_l) + get_local_size(0) - 1];
-    block[get_local_size(0) + 1] = tick[nx * (get_local_size(1) * block_d + get_local_size(1) - 1) + (get_local_size(0) * block_r)];
-    block[(get_local_size(0) + 2) * (get_local_size(1) + 1)] = tick[nx * (get_local_size(1) * block_u) + (get_local_size(0) * block_l) + get_local_size(0) - 1];
-    block[(get_local_size(0) + 2) * (get_local_size(1) + 2) - 1] = tick[nx * (get_local_size(1) * block_u) + (get_local_size(0) * block_r)];
+    block[0] = tick[nx * (get_local_size(1) * block_d + get_local_size(1) - 1)
+                    + (get_local_size(0) * block_l) + get_local_size(0) - 1];
+    block[get_local_size(0) + 1] = tick[nx * (get_local_size(1) * block_d + get_local_size(1) - 1)
+                                        + (get_local_size(0) * block_r)];
+    block[(get_local_size(0) + 2)
+          * (get_local_size(1) + 1)] = tick[nx * (get_local_size(1) * block_u)
+                                            + (get_local_size(0) * block_l) + get_local_size(0) - 1];
+    block[(get_local_size(0) + 2) * (get_local_size(1) + 2)
+          - 1] = tick[nx * (get_local_size(1) * block_u) + (get_local_size(0) * block_r)];
 
     barrier(CLK_LOCAL_MEM_FENCE);
 
@@ -82,11 +89,11 @@ __kernel void accelerate_life(__global const char* tick, __global char* tock, co
     if (block[(get_local_id(1) + 1) * (get_local_size(0) + 2) + x_l] == ALIVE) neighbours++;
     if (block[y_u * (get_local_size(0) + 2) + x_l] == ALIVE) neighbours++;
     if (block[y_d * (get_local_size(0) + 2) + x_l] == ALIVE) neighbours++;
-    
+
     if (block[(get_local_id(1) + 1) * (get_local_size(0) + 2) + x_r] == ALIVE) neighbours++;
     if (block[y_u * (get_local_size(0) + 2) + x_r] == ALIVE) neighbours++;
     if (block[y_d * (get_local_size(0) + 2) + x_r] == ALIVE) neighbours++;
-    
+
     if (block[y_u * (get_local_size(0) + 2) + get_local_id(0) + 1] == ALIVE) neighbours++;
     if (block[y_d * (get_local_size(0) + 2) + get_local_id(0) + 1] == ALIVE) neighbours++;
 

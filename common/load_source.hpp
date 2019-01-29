@@ -1,22 +1,16 @@
 
 #pragma once
 
-#include <iostream>
 #include <fstream>
+#include <stdexcept>
 #include <string>
 
-#include <cstdlib>
-
-namespace util
-{
-inline std::string loadProgram(std::string const input)
+inline std::string load_source(std::string const input) noexcept(false)
 {
     std::ifstream stream(input.c_str());
     if (!stream.is_open())
     {
-        std::cout << "Cannot open file: " << input << std::endl;
-        exit(1);
+        throw std::domain_error("Cannot open file: " + input);
     }
     return std::string(std::istreambuf_iterator<char>(stream), std::istreambuf_iterator<char>());
-}
 }

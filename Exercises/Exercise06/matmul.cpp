@@ -23,7 +23,7 @@
 
 #include "matmul.hpp"
 #include "matrix_lib.hpp"
-#include "util.hpp"
+#include "load_source.hpp"
 #include <err_code.h>
 #include "device_picker.hpp"
 

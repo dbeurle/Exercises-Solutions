@@ -15,7 +15,7 @@ History: Written by Tim Mattson, 11/99.
 
 */
 
-#include "util.hpp"
+#include "load_source.hpp"
 
 #include <cstdio>
 #include <cmath>

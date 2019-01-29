@@ -9,8 +9,6 @@
 //        local float* an array to hold sums from each work item
 //
 // output: partial_sums   float vector of partial sums
-//
-
 __kernel void pi(const int niters,
                  const float step_size,
                  __local float* local_sums,

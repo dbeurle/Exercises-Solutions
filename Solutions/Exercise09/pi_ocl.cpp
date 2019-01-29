@@ -19,7 +19,7 @@
 #include <iostream>
 #include <fstream>
 
-#include "util.hpp"
+#include "load_source.hpp"
 #include "err_code.h"
 #include "device_picker.hpp"
 
@@ -63,7 +63,7 @@ int main(int argc, char* argv[])
         cl::CommandQueue queue(context, device);
 
         // Create the program object
-        cl::Program program(context, util::loadProgram("../pi_ocl.cl"), true);
+        cl::Program program(context, load_source("../pi_ocl.cl"), true);
 
         // Create the kernel object for quering information
         cl::Kernel ko_pi(program, "pi");

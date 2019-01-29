@@ -20,34 +20,34 @@ add_library(matrix_library ${COMMON_DIRECTORY}/matrix_lib.cpp)
 target_include_directories(matrix_library PRIVATE ${COMMON_DIRECTORY})
 
 # Exercises
-add_executable(device_info ${EXERCISES_DIR}/${EXERCISE_DIR}01/DeviceInfo.cpp)
-target_link_libraries(device_info PRIVATE OpenCL::OpenCL)
-target_include_directories(device_info PRIVATE ${COMMON_DIRECTORY})
+# add_executable(device_info ${EXERCISES_DIR}/${EXERCISE_DIR}01/DeviceInfo.cpp)
+# target_link_libraries(device_info PRIVATE OpenCL::OpenCL)
+# target_include_directories(device_info PRIVATE ${COMMON_DIRECTORY})
+#
+# add_executable(vector_add ${EXERCISES_DIR}/${EXERCISE_DIR}03/vadd.cpp)
+# target_link_libraries(vector_add PRIVATE OpenCL::OpenCL)
+# target_include_directories(vector_add PRIVATE ${COMMON_DIRECTORY})
 
-add_executable(vector_add ${EXERCISES_DIR}/${EXERCISE_DIR}03/vadd.cpp)
+# Solution
+add_executable(vector_add ${SOLUTIONS_DIR}/vector_add/main.cpp)
 target_link_libraries(vector_add PRIVATE OpenCL::OpenCL)
 target_include_directories(vector_add PRIVATE ${COMMON_DIRECTORY})
 
-# Solution
-add_executable(vector_add_chain ${SOLUTIONS_DIR}/${EXERCISE_DIR}04/vadd_chain.cpp)
-target_link_libraries(vector_add_chain PRIVATE OpenCL::OpenCL matrix_library)
-target_include_directories(vector_add_chain PRIVATE ${COMMON_DIRECTORY})
+add_executable(vector_add_multiple ${SOLUTIONS_DIR}/vector_add_multiple/main.cpp)
+target_link_libraries(vector_add_multiple PRIVATE OpenCL::OpenCL)
+target_include_directories(vector_add_multiple PRIVATE ${COMMON_DIRECTORY})
 
-add_executable(vector_add_abc ${SOLUTIONS_DIR}/${EXERCISE_DIR}05/vadd_abc.cpp)
-target_link_libraries(vector_add_abc PRIVATE OpenCL::OpenCL matrix_library)
-target_include_directories(vector_add_abc PRIVATE ${COMMON_DIRECTORY})
+add_executable(matrix_multiply_basic ${SOLUTIONS_DIR}/matrix_multiply_basic/main.cpp)
+target_link_libraries(matrix_multiply_basic PRIVATE OpenCL::OpenCL matrix_library)
+target_include_directories(matrix_multiply_basic PRIVATE ${COMMON_DIRECTORY})
 
-add_executable(matrix_lib ${SOLUTIONS_DIR}/${EXERCISE_DIR}06/matmul.cpp)
-target_link_libraries(matrix_lib PRIVATE OpenCL::OpenCL matrix_library)
-target_include_directories(matrix_lib PRIVATE ${COMMON_DIRECTORY})
+add_executable(matrix_multiply_private ${SOLUTIONS_DIR}/matrix_multiply/main.cpp)
+target_link_libraries(matrix_multiply_private PRIVATE OpenCL::OpenCL matrix_library)
+target_include_directories(matrix_multiply_private PRIVATE ${COMMON_DIRECTORY})
 
-add_executable(matrix_lib_priv ${SOLUTIONS_DIR}/${EXERCISE_DIR}07/matmul.cpp)
-target_link_libraries(matrix_lib_priv PRIVATE OpenCL::OpenCL matrix_library)
-target_include_directories(matrix_lib_priv PRIVATE ${COMMON_DIRECTORY})
-
-add_executable(matrix_lib_priv_block ${SOLUTIONS_DIR}/${EXERCISE_DIR}08/matmul.cpp)
-target_link_libraries(matrix_lib_priv_block PRIVATE OpenCL::OpenCL matrix_library)
-target_include_directories(matrix_lib_priv_block PRIVATE ${COMMON_DIRECTORY})
+add_executable(matrix_multiply_blocked ${SOLUTIONS_DIR}/matrix_multiply_blocked/main.cpp)
+target_link_libraries(matrix_multiply_blocked PRIVATE OpenCL::OpenCL matrix_library)
+target_include_directories(matrix_multiply_blocked PRIVATE ${COMMON_DIRECTORY})
 
 add_executable(pi ${SOLUTIONS_DIR}/${EXERCISE_DIR}09/pi_ocl.cpp)
 target_link_libraries(pi PRIVATE OpenCL::OpenCL matrix_library)

@@ -15,7 +15,7 @@
 #define __CL_ENABLE_EXCEPTIONS
 #include <CL/cl.hpp>
 
-#include "util.hpp"
+#include "load_source.hpp"
 
 // pick up device type from compiler command line or from
 // the default type
@@ -72,7 +72,7 @@ int main(int argc, char** argv)
     {
         cl::Context context(DEVICE);
         cl::CommandQueue queue(context);
-        cl::Program program(context, util::loadProgram("../gameoflife.cl"));
+        cl::Program program(context, load_source("../gameoflife.cl"));
         try
         {
             program.build();

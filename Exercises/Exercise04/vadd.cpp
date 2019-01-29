@@ -17,7 +17,7 @@
 
 #include <CL/cl.hpp>
 
-#include "util.hpp"
+#include "load_source.hpp"
 
 #include <vector>
 #include <cstdio>
@@ -64,7 +64,7 @@ int main(void)
 
         // Load in kernel source, creating a program object for the context
 
-        cl::Program program(context, util::loadProgram("vadd.cl"), true);
+        cl::Program program(context, load_source("vadd.cl"), true);
 
         // Get the command queue
         cl::CommandQueue queue(context);
