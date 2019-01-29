@@ -25,15 +25,10 @@
 
 int main(int argc, char* argv[])
 {
-    float* h_psum;                   // vector to hold partial sum
-    int in_nsteps = 512 * 512 * 512; // default number of steps (updated later to device prefereable)
-    int niters = 262144;             // number of iterations
-    int nsteps;
-    float step_size;
-    std::size_t nwork_groups;
-    std::size_t max_size, work_group_size = 8;
-
-    cl::Buffer d_partial_sums;
+    // default number of steps (updated later to device preferable)
+    constexpr int in_nsteps = 512 * 512 * 512;
+    // number of iterations
+    constexpr int niters = 262144;
 
     try
     {
@@ -69,13 +64,13 @@ int main(int argc, char* argv[])
         cl::Kernel ko_pi(program, "pi");
 
         // Get the work group size
-        work_group_size = ko_pi.getWorkGroupInfo<CL_KERNEL_WORK_GROUP_SIZE>(device);
+        auto const work_group_size = ko_pi.getWorkGroupInfo<CL_KERNEL_WORK_GROUP_SIZE>(device);
 
         cl::make_kernel<int, float, cl::LocalSpaceArg, cl::Buffer> pi(program, "pi");
 
         // Now that we know the size of the work_groups, we can set the number of work
         // groups, the actual number of steps, and the step size
-        nwork_groups = in_nsteps / (work_group_size * niters);
+        auto const nwork_groups = in_nsteps / (work_group_size * niters);
 
         if (nwork_groups < 1)
         {
@@ -83,15 +78,15 @@ int main(int argc, char* argv[])
             work_group_size = in_nsteps / (nwork_groups * niters);
         }
 
-        nsteps = work_group_size * niters * nwork_groups;
-        step_size = 1.0f / static_cast<float>(nsteps);
+        auto const nsteps = work_group_size * niters * nwork_groups;
+        float const step_size = 1.0f / static_cast<float>(nsteps);
 
         printf(" %d work groups of size %d.  %d Integration steps\n",
                (int)nwork_groups,
                (int)work_group_size,
                nsteps);
 
-        d_partial_sums = cl::Buffer(context, CL_MEM_WRITE_ONLY, sizeof(float) * nwork_groups);
+        cl::Buffer d_partial_sums(context, CL_MEM_WRITE_ONLY, sizeof(float) * nwork_groups);
 
         auto const start = std::chrono::steady_clock::now();
 
