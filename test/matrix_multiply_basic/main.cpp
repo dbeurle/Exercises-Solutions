@@ -96,7 +96,7 @@ int main(int argc, char* argv[])
         // OpenCL matrix multiplication ... naive
 
         // Create the compute program from the source buffer
-        cl::Program program(context, load_source("../Solutions/kernel/matrix_multiply_basic.cl"), true);
+        cl::Program program(context, load_source("../test/kernel/matrix_multiply_basic.cl"), true);
 
         // Create the compute kernel from the program
         // clang-format off

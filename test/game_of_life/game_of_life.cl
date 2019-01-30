@@ -75,14 +75,11 @@ __kernel void accelerate_life(__global const char* tick,
 
     barrier(CLK_LOCAL_MEM_FENCE);
 
-    // Index of the row/columns next to id_b
-    unsigned int x_l, x_r, y_u, y_d;
-
     // Calculate indexes
-    x_r = get_local_id(0) + 2;
-    x_l = get_local_id(0);
-    y_u = get_local_id(1) + 2;
-    y_d = get_local_id(1);
+    unsigned int x_r = get_local_id(0) + 2;
+    unsigned int x_l = get_local_id(0);
+    unsigned int y_u = get_local_id(1) + 2;
+    unsigned int y_d = get_local_id(1);
 
     // Count alive neighbours (out of eight)
     int neighbours = 0;
@@ -101,19 +98,27 @@ __kernel void accelerate_life(__global const char* tick,
     if (block[id_b] == ALIVE)
     {
         if (neighbours == 2 || neighbours == 3)
+        {
             // Cell lives on
             tock[id] = ALIVE;
+        }
         else
+        {
             // Cell dies by over/under population
             tock[id] = DEAD;
+        }
     }
     else
     {
         if (neighbours == 3)
+        {
             // Cell becomes alive through reproduction
             tock[id] = ALIVE;
+        }
         else
+        {
             // Remains dead
             tock[id] = DEAD;
+        }
     }
 }

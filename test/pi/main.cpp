@@ -12,12 +12,9 @@
 
 #include <numeric>
 #include <chrono>
-#include <cstdio>
-#include <cstdlib>
 #include <string>
 #include <vector>
 #include <iostream>
-#include <fstream>
 
 #include "load_source.hpp"
 #include "err_code.h"
@@ -26,24 +23,24 @@
 int main(int argc, char* argv[])
 {
     // default number of steps (updated later to device preferable)
-    constexpr int in_nsteps = 512 * 512 * 512;
+    constexpr std::size_t in_nsteps = 512 * 512 * 512;
     // number of iterations
-    constexpr int niters = 262144;
+    constexpr std::size_t niters = 262144;
 
     try
     {
-        cl_uint deviceIndex = 0;
+        cl_uint deviceIndex = 1;
         parseArguments(argc, argv, &deviceIndex);
 
         // Get list of devices
         std::vector<cl::Device> devices;
-        unsigned numDevices = getDeviceList(devices);
+        auto const numDevices = getDeviceList(devices);
 
         // Check device index in range
         if (deviceIndex >= numDevices)
         {
             std::cout << "Invalid device index (try '--list')\n";
-            return EXIT_FAILURE;
+            return 1;
         }
 
         cl::Device device = devices[deviceIndex];
@@ -58,19 +55,19 @@ int main(int argc, char* argv[])
         cl::CommandQueue queue(context, device);
 
         // Create the program object
-        cl::Program program(context, load_source("../pi_ocl.cl"), true);
+        cl::Program program(context, load_source("../test/kernel/pi_ocl.cl"), true);
 
         // Create the kernel object for quering information
         cl::Kernel ko_pi(program, "pi");
 
-        // Get the work group size
-        auto const work_group_size = ko_pi.getWorkGroupInfo<CL_KERNEL_WORK_GROUP_SIZE>(device);
-
         cl::make_kernel<int, float, cl::LocalSpaceArg, cl::Buffer> pi(program, "pi");
+
+        // Get the work group size
+        auto work_group_size = ko_pi.getWorkGroupInfo<CL_KERNEL_WORK_GROUP_SIZE>(device);
 
         // Now that we know the size of the work_groups, we can set the number of work
         // groups, the actual number of steps, and the step size
-        auto const nwork_groups = in_nsteps / (work_group_size * niters);
+        auto nwork_groups = in_nsteps / (work_group_size * niters);
 
         if (nwork_groups < 1)
         {
@@ -81,10 +78,8 @@ int main(int argc, char* argv[])
         auto const nsteps = work_group_size * niters * nwork_groups;
         float const step_size = 1.0f / static_cast<float>(nsteps);
 
-        printf(" %d work groups of size %d.  %d Integration steps\n",
-               (int)nwork_groups,
-               (int)work_group_size,
-               nsteps);
+        std::cout << " " << nwork_groups << " work groups of size " << work_group_size << ".  "
+                  << nsteps << " Integration steps\n";
 
         cl::Buffer d_partial_sums(context, CL_MEM_WRITE_ONLY, sizeof(float) * nwork_groups);
 
@@ -107,8 +102,8 @@ int main(int argc, char* argv[])
         auto const end = std::chrono::steady_clock::now();
         std::chrono::duration<double> const elapsed = end - start;
 
-        printf("\nThe calculation ran in %lf seconds\n", elapsed.count());
-        printf(" pi = %f for %d steps\n", pi_res, nsteps);
+        std::cout << "\nThe calculation ran in " << elapsed.count() << " seconds\n";
+        std::cout << " pi = " << pi_res << " for " << nsteps << " steps\n";
     }
     catch (cl::Error const& err)
     {

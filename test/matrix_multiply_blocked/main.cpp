@@ -94,7 +94,7 @@ int main(int argc, char* argv[])
         cl::Buffer d_c(context, CL_MEM_WRITE_ONLY, sizeof(float) * size);
 
         // Create the compute program from the source buffer
-        cl::Program program(context, load_source("../Solutions/kernel/matrix_multiply_basic.cl"), true);
+        cl::Program program(context, load_source("../test/kernel/matrix_multiply_basic.cl"), true);
 
         // OpenCL matrix multiplication ... Naive
         {
@@ -135,7 +135,7 @@ int main(int argc, char* argv[])
         {
             // Create the compute program from the source buffer
             program = cl::Program(context,
-                                  load_source("../Solutions/kernel/matrix_multiply_row_wise.cl"),
+                                  load_source("../test/kernel/matrix_multiply_row_wise.cl"),
                                   true);
 
             // Create the compute kernel from the program
@@ -168,7 +168,7 @@ int main(int argc, char* argv[])
         {
             // Create the compute program from the source buffer
             program = cl::Program(context,
-                                  load_source("../Solutions/kernel/"
+                                  load_source("../test/kernel/"
                                               "matrix_multiply_private_row_wise.cl"),
                                   true);
 
@@ -204,7 +204,7 @@ int main(int argc, char* argv[])
         {
             // Create the compute program from the source buffer
             program = cl::Program(context,
-                                  load_source("../Solutions/kernel/"
+                                  load_source("../test/kernel/"
                                               "matrix_multiply_row_private_blocked.cl"),
                                   true);
 
@@ -243,7 +243,7 @@ int main(int argc, char* argv[])
         {
             // Create the compute program from the source buffer
             program = cl::Program(context,
-                                  load_source("../Solutions/kernel/matrix_multiply_blocked.cl"),
+                                  load_source("../test/kernel/matrix_multiply_blocked.cl"),
                                   true);
 
             // Create the compute kernel from the program

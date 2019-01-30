@@ -97,7 +97,7 @@ int main(int argc, char* argv[])
         // OpenCL matrix multiplication ... Naive
 
         // Create the compute program from the source buffer
-        cl::Program program(context, load_source("../Solutions/kernel/matrix_multiply_basic.cl"), true);
+        cl::Program program(context, load_source("../test/kernel/matrix_multiply_basic.cl"), true);
 
         // Create the compute kernel from the program
         cl::make_kernel<std::size_t, cl::Buffer, cl::Buffer, cl::Buffer> naive_mmul(program,
@@ -134,9 +134,7 @@ int main(int argc, char* argv[])
         // OpenCL matrix multiplication ... C row per work item
 
         // Create the compute program from the source buffer
-        program = cl::Program(context,
-                              load_source("../Solutions/kernel/matrix_multiply_row_wise.cl"),
-                              true);
+        program = cl::Program(context, load_source("../test/kernel/matrix_multiply_row_wise.cl"), true);
 
         // Create the compute kernel from the program
         cl::make_kernel<std::size_t, cl::Buffer, cl::Buffer, cl::Buffer> crow_mmul(program, "mmul");
@@ -166,9 +164,7 @@ int main(int argc, char* argv[])
         // OpenCL matrix multiplication ... C row per work item, A row in private memory
 
         // Create the compute program from the source buffer
-        program = cl::Program(context,
-                              load_source("../Solutions/kernel/matrix_multiply_private.cl"),
-                              true);
+        program = cl::Program(context, load_source("../test/kernel/matrix_multiply_private.cl"), true);
 
         // Create the compute kernel from the program
         cl::make_kernel<std::size_t, cl::Buffer, cl::Buffer, cl::Buffer> arowpriv_mmul(program,
